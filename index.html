@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Song Cards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{--bg:#f6f4ef;--fg:#1b1b1f;--card:#fff;--mut:#6b6b73;--line:#dcd9d0;--acc:#e8336d;--acc2:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#15151a;--fg:#f1f0ee;--card:#222229;--mut:#9a9aa5;--line:#34343d;--acc:#ff4f8b;--acc2:#15151a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}
+nav{display:flex;gap:6px;margin-bottom:16px}
+nav button{flex:1;padding:10px 4px;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;font-size:14px;cursor:pointer}
+nav button.on{background:var(--acc);color:var(--acc2);border-color:var(--acc);font-weight:600}
+.panel{display:none}.panel.on{display:block}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+button.p{background:var(--acc);color:var(--acc2);border:0;border-radius:10px;padding:12px 16px;font-size:16px;font-weight:600;cursor:pointer}
+button.s{background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+input,textarea{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:15px;width:100%}
+video{width:100%;border-radius:12px;background:#000;max-height:50vh;object-fit:cover}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mut{color:var(--mut);font-size:14px}
+.year{font-size:56px;font-weight:800;color:var(--acc);line-height:1}
+.mystery{text-align:center;padding:24px 0}
+.cardrow{display:grid;grid-template-columns:40px 1fr 1fr 66px 1.3fr 36px;gap:6px;align-items:center;margin-bottom:6px}
+.scroll{overflow-x:auto}.scroll .cardrow{min-width:660px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,calc(var(--cs,6cm)*2));gap:0;justify-content:start}
+.pair{display:flex;break-inside:avoid}
+.iy{font-size:calc(var(--cs,6cm)*.28);font-weight:800;line-height:1;color:#e8336d}
+.it{font-weight:700;font-size:calc(var(--cs,6cm)*.1);margin-top:.2cm;line-height:1.15}
+.ia{font-size:calc(var(--cs,6cm)*.08);color:#444;margin-top:.1cm}
+.qr{background:#fff;color:#111;border:1px dashed #888;padding:.3cm;text-align:center;width:var(--cs,6cm);height:var(--cs,6cm);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.qr.nocut{border-color:transparent}
+.qr svg{width:100%;flex:1;min-height:0}
+.qr b{font-size:13px}
+code{background:var(--bg);padding:2px 6px;border-radius:6px;word-break:break-all}
+li{margin-bottom:6px}
+@media print{body{background:#fff}nav,h1,.noprint,#p-play,#p-cards,#p-setup{display:none!important}#p-print{display:block!important}.box{border:0;padding:0}.qr{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+<h1>🎵 Song Cards</h1>
+<nav>
+<button data-t="play" class="on">Play</button>
+<button data-t="cards">My songs</button>
+<button data-t="print">Print</button>
+<button data-t="setup">Setup</button>
+</nav>
+
+<section id="p-play" class="panel on">
+<div class="box">
+<video id="vid" playsinline muted hidden></video>
+<div class="row" style="margin-top:8px">
+<button class="p" id="scan">📷 Scan a card</button>
+<span class="mut">or #</span>
+<input id="num" type="number" min="1" style="width:80px" placeholder="12">
+<button class="s" id="go">Play</button>
+</div>
+<div class="mut" id="msg" style="margin-top:8px"></div>
+</div>
+<div class="box" id="result" hidden>
+<div class="mystery" id="myst">
+<div class="mut" id="cid"></div>
+<div style="font-size:44px">🎧</div>
+<div class="row" style="justify-content:center;margin-top:8px">
+<button class="s" id="replay">↻ Replay</button>
+<button class="s" id="pause">⏸ Pause</button>
+</div>
+</div>
+</div>
+</section>
+
+<section id="p-cards" class="panel">
+<div class="box">
+<p class="mut" style="margin-top:0">Paste a Spotify track link for each card (Spotify: Share → Copy link). Once connected, title, artist and year fill in automatically. The year is the album’s release year, so fix it by hand for remasters and compilations.</p>
+<div class="scroll" id="list"></div>
+<div class="row" style="margin-top:10px">
+<button class="p" id="add">+ Add card</button>
+<button class="s" id="exp">Export</button>
+<button class="s" id="imp">Import</button>
+</div>
+<textarea id="io" style="height:90px;margin-top:10px;display:none" placeholder="Paste exported data here, then tap Import again"></textarea>
+</div>
+</section>
+
+<section id="p-print" class="panel">
+<div class="box">
+<div class="row noprint" style="margin-bottom:12px">
+<button class="p" id="prt">🖨 Print</button>
+<label class="mut">Size (cm) <input id="sz" type="number" min="2" max="12" step="0.5" value="6" style="width:70px"></label>
+<label class="mut"><input type="checkbox" id="shn" checked style="width:auto"> Number</label>
+<label class="mut"><input type="checkbox" id="cut" checked style="width:auto"> Cut lines</label>
+<label class="mut"><input type="checkbox" id="inf" checked style="width:auto"> Song info</label>
+</div>
+<div class="grid" id="grid"></div>
+</div>
+</section>
+
+<section id="p-setup" class="panel">
+<div class="box">
+<ol style="padding-left:20px;margin:0">
+<li>Open <code>developer.spotify.com/dashboard</code>, log in and tap <b>Create app</b>. Tick <b>Web API</b>.</li>
+<li>Add this as a <b>Redirect URI</b> and save: <code id="ru"></code></li>
+<li>Copy the app’s <b>Client ID</b> and paste it here:
+<input id="clid" placeholder="Client ID" style="margin-top:6px"></li>
+<li>Tap Connect and approve access. You need Spotify Premium, and the Spotify app must be installed on this phone.</li>
+</ol>
+<div class="row" style="margin-top:12px">
+<button class="p" id="conn">Connect Spotify</button>
+<button class="s" id="disc">Disconnect</button>
+</div>
+<div class="mut" id="st" style="margin-top:8px"></div>
+<p class="mut">Playing: open the Spotify app once and start any song so your phone shows up as a device. After that, scanning a card starts the song in the background. Don’t open Spotify during the game, since it shows the title.</p>
+</div>
+</section>
+</main>
+
+<script>
+(function(){
+var K='songcards.v2',cards=[],cur=null,S={cid:'',at:'',rt:'',exp:0};
+var demo=[["Billie Jean","Michael Jackson",1982],["Bohemian Rhapsody","Queen",1975],["Smells Like Teen Spirit","Nirvana",1991],["Rolling in the Deep","Adele",2010],["Dancing Queen","ABBA",1976]];
+var $=function(i){return document.getElementById(i)};
+var RU=location.origin+location.pathname;
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}}
+function save(){ls(K,JSON.stringify(cards))}
+function load(){try{cards=JSON.parse(ls(K)||'[]')}catch(e){cards=[]}
+if(!cards.length)cards=demo.map(function(d,i){return{id:i+1,title:d[0],artist:d[1],year:d[2],link:''}});
+S.cid=ls('sc.cid')||'';try{var t=JSON.parse(ls('sc.tk')||'{}');S.at=t.at||'';S.rt=t.rt||'';S.exp=t.exp||0}catch(e){}}
+function msg(t){$('msg').textContent=t||''}
+function tid(u){var m=/track[\/:]([A-Za-z0-9]{22})/.exec(u||'');return m&&m[1]}
+function b64(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+
+/* ---- Spotify auth (PKCE, no server) ---- */
+async function login(){
+if(!S.cid){$('st').textContent='Paste your Client ID first.';return}
+var v=b64(crypto.getRandomValues(new Uint8Array(48)));
+var ch=b64(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
+ls('sc.v',v);
+location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({client_id:S.cid,response_type:'code',redirect_uri:RU,code_challenge_method:'S256',code_challenge:ch,scope:'user-modify-playback-state user-read-playback-state'})}
+async function tok(body){
+var r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(Object.assign({client_id:S.cid},body))});
+var j=await r.json();if(!r.ok)throw new Error(j.error_description||'Spotify login failed');
+S.at=j.access_token;if(j.refresh_token)S.rt=j.refresh_token;S.exp=Date.now()+j.expires_in*1000-30000;
+ls('sc.tk',JSON.stringify({at:S.at,rt:S.rt,exp:S.exp}))}
+async function api(path,opt){
+if(!S.rt)throw new Error('Connect Spotify in Setup first.');
+if(Date.now()>S.exp)await tok({grant_type:'refresh_token',refresh_token:S.rt});
+opt=opt||{};opt.headers={Authorization:'Bearer '+S.at,'Content-Type':'application/json'};
+return fetch('https://api.spotify.com/v1'+path,opt)}
+function status(){$('st').textContent=S.rt?'✓ Connected to Spotify.':'Not connected.'}
+
+/* ---- Playback ---- */
+async function play(){
+if(!cur)return;var t=tid(cur.link);
+if(!t){msg('Card '+cur.id+' has no Spotify link yet. Add one under My songs.');return}
+try{var b=JSON.stringify({uris:['spotify:track:'+t]});
+var r=await api('/me/player/play',{method:'PUT',body:b});
+if(r.status===404){var d=await(await api('/me/player/devices')).json();
+if(d.devices&&d.devices.length)r=await api('/me/player/play?device_id='+d.devices[0].id,{method:'PUT',body:b})}
+if(r.status===404)msg('No Spotify device found. Open the Spotify app, play any song, then scan again.');
+else if(r.status===403)msg('Spotify refused. Premium is required, and your account must be the app owner or added in the app’s User Management.');
+else if(!r.ok)msg('Spotify error '+r.status);
+else msg('')}catch(e){msg(e.message)}}
+async function pause(){try{await api('/me/player/pause',{method:'PUT'})}catch(e){msg(e.message)}}
+async function fill(c){var t=tid(c.link);if(!t||!S.rt)return;
+try{var r=await api('/tracks/'+t);if(!r.ok)return;var j=await r.json();
+c.title=j.name;c.artist=j.artists.map(function(a){return a.name}).join(', ');c.year=+j.album.release_date.slice(0,4);save();renderList()}catch(e){}}
+
+/* ---- Play screen ---- */
+function show(id){var c=cards.find(function(x){return x.id==id});
+if(!c){msg('Card '+id+' isn’t in your list yet.');return}
+cur=c;$('result').hidden=false;$('cid').textContent='Card #'+c.id;msg('');play()}
+$('replay').onclick=play;$('pause').onclick=pause;
+$('go').onclick=function(){if($('num').value)show(+$('num').value)};
+
+var stream=null,raf=0,cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+function stop(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}$('vid').hidden=true}
+function tick(){var v=$('vid');
+if(stream&&v.readyState>=2&&v.videoWidth>0){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);
+var r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);
+var m=r&&/^SONGCARD-(\d+)$/.exec(r.data);
+if(m){stop();show(+m[1]);return}}
+raf=requestAnimationFrame(tick)}
+function loadQR(cb){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';s.onload=cb;s.onerror=function(){msg('The QR scanner library didn’t load. Turn off content blockers or try another network, or type the card number.')};document.head.appendChild(s)}
+$('scan').onclick=function(){
+if(stream){stop();return}
+if(!navigator.mediaDevices){msg('This page can’t use the camera. Open it in Safari at its https address, or type the card number.');return}
+if(!window.jsQR){msg('Loading scanner…');loadQR(function(){$('scan').onclick()});return}
+navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
+stream=s;var v=$('vid');v.srcObject=s;v.hidden=false;v.play();msg('Point the camera at a QR code…');tick()
+}).catch(function(e){msg('Camera error: '+(e&&e.name||'unknown')+'. Allow access, or type the card number.')})};
+
+/* ---- Song list ---- */
+function renderList(){
+$('list').innerHTML='<div class="cardrow mut"><span>#</span><span>Title</span><span>Artist</span><span>Year</span><span>Spotify track link</span><span></span></div>';
+cards.forEach(function(c){var d=document.createElement('div');d.className='cardrow';d.innerHTML='<b>'+c.id+'</b>';
+['title','artist','year','link'].forEach(function(f){var i=document.createElement('input');i.value=c[f]||'';if(f==='year')i.type='number';
+i.onchange=function(){c[f]=f==='year'?+i.value:i.value.trim();save();if(f==='link')fill(c)};d.appendChild(i)});
+var x=document.createElement('button');x.className='s';x.textContent='✕';x.style.padding='6px';
+x.onclick=function(){cards=cards.filter(function(k){return k!==c});save();renderList()};d.appendChild(x);$('list').appendChild(d)})}
+$('add').onclick=function(){var n=cards.reduce(function(m,c){return Math.max(m,c.id)},0)+1;
+cards.push({id:n,title:'',artist:'',year:2000,link:''});save();renderList()};
+$('exp').onclick=function(){var t=$('io');t.style.display='block';t.value=JSON.stringify(cards);t.select()};
+$('imp').onclick=function(){var t=$('io');if(t.style.display==='none'){t.style.display='block';return}
+try{var a=JSON.parse(t.value);if(Array.isArray(a)&&a.length){cards=a;save();renderList();t.style.display='none'}}catch(e){t.value='Invalid data'}};
+
+/* ---- Print ---- */
+function renderPrint(){var g=$('grid');g.innerHTML='';
+var s=Math.min(12,Math.max(2,parseFloat($('sz').value)||6));g.style.setProperty('--cs',s+'cm');
+var sn=$('shn').checked,ct=$('cut').checked;
+var inf=$('inf').checked;g.style.gridTemplateColumns='repeat(auto-fill,calc('+s+'cm*'+(inf?2:1)+'))';
+var esc=function(v){var e=document.createElement('div');e.textContent=v==null?'':v;return e.innerHTML};
+cards.forEach(function(c){var q=qrcode(0,'M');q.addData('SONGCARD-'+String(c.id).padStart(3,'0'));q.make();
+var p=document.createElement('div');p.className='pair';
+var d=document.createElement('div');d.className='qr'+(ct?'':' nocut');d.innerHTML=q.createSvgTag({cellSize:4,margin:2,scalable:true})+(sn?'<b>#'+c.id+'</b>':'');p.appendChild(d);
+if(inf){var i=document.createElement('div');i.className='qr'+(ct?'':' nocut');i.innerHTML='<div class="iy">'+esc(c.year)+'</div><div class="it">'+esc(c.title)+'</div><div class="ia">'+esc(c.artist)+'</div>'+(sn?'<b>#'+c.id+'</b>':'');p.appendChild(i)}
+g.appendChild(p)})}
+['sz','shn','cut','inf'].forEach(function(i){$(i).onchange=renderPrint});
+$('prt').onclick=function(){window.print()};
+
+/* ---- Setup + tabs ---- */
+$('ru').textContent=RU;
+$('clid').onchange=function(){S.cid=$('clid').value.trim();ls('sc.cid',S.cid)};
+$('conn').onclick=function(){S.cid=$('clid').value.trim();ls('sc.cid',S.cid);login()};
+$('disc').onclick=function(){S.at=S.rt='';S.exp=0;ls('sc.tk',null);status()};
+document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){
+document.querySelectorAll('nav button').forEach(function(x){x.classList.toggle('on',x===b)});
+document.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('on',p.id==='p-'+b.dataset.t)});
+stop();if(b.dataset.t==='print')renderPrint()}});
+
+load();$('clid').value=S.cid;renderList();status();
+var code=new URLSearchParams(location.search).get('code');
+if(code){history.replaceState({},'',RU);
+tok({grant_type:'authorization_code',code:code,redirect_uri:RU,code_verifier:ls('sc.v')}).then(function(){
+status();document.querySelector('[data-t=setup]').click()}).catch(function(e){$('st').textContent=e.message})}
+})();
+</script>
+</body>
+</html>

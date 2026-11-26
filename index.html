@@ -195,7 +195,7 @@ li{margin-bottom:8px}
 </div>
 <div class="mut" id="st" style="margin-top:8px"></div>
 <div class="row" style="margin-top:10px"><select id="dev" style="flex:1;min-width:0;padding:8px;font-size:15px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--line)"><option value="">Auto (prefer this phone)</option></select><button class="s" id="rd">Refresh devices</button></div>
-<div class="mut">Choose where songs play. Auto picks your phone, so it won’t go to your Chromecast.</div>
+<div class="mut">Choose where songs play. Auto only ever uses your phone, never your PC or Chromecast. Pick a device here to override.</div>
 <p class="mut">Playing: open the Spotify app once and start any song so your phone shows up as a device. After that, scanning a card starts the song in the background. Don’t open Spotify during the game, since it shows the title.</p>
 </div>
 </section>
@@ -257,9 +257,9 @@ if(!cur)return;var t=tid(cur.link);
 if(!t){msg('Card '+cur.id+' has no Spotify link yet. Add one under My songs.');return}
 try{var b=JSON.stringify({uris:['spotify:track:'+t]});
 var d=await(await api('/me/player/devices')).json(),L=d.devices||[],sid=ls('sc.dev');
-var dv=L.find(function(x){return x.id===sid})||L.find(function(x){return x.type==='Smartphone'})||L.find(function(x){return x.is_active})||L[0];
+var dv=L.find(function(x){return x.id===sid})||L.find(function(x){return x.type==='Smartphone'});
 var r=dv?await api('/me/player/play?device_id='+dv.id,{method:'PUT',body:b}):{status:404};
-if(r.status===404)msg('No Spotify device found. Open the Spotify app, play any song, then scan again.');
+if(r.status===404)msg('Your phone isn’t showing up in Spotify. Open the Spotify app on this phone, play any song for a second, then scan again. (Songs only play on your phone unless you pick another device in Setup.)');
 else if(r.status===403)msg('Spotify refused. Premium is required, and your account must be the app owner or added in the app’s User Management.');
 else if(!r.ok)msg('Spotify error '+r.status);
 else{msg('');$('rec').classList.add('spin')}}catch(e){msg(e.message)}}
